@@ -33,8 +33,8 @@ class meta3d_model():
 
         upsampler_model.load_state_dict(load_checkpoint('upsample', self.device))
 
-        torch.save(base_model.state_dict(), self.base_model_path)
-        torch.save(upsampler_model.state_dict(), self.unsample_model_path)
+        torch.save(base_model, self.base_model_path)
+        torch.save(upsampler_model, self.unsample_model_path)
     
     # create a function to load the model
     def load_model(self):
@@ -78,4 +78,5 @@ if __name__ == '__main__':
 
     model.load_model()
     model.get_diffusion()
-    print(type(model.base_model_loaded))
+    # print(type(model.base_model_loaded))
+    model.save_model2ply('test.ply')
