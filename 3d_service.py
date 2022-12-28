@@ -12,8 +12,8 @@ class meta3d_model():
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model_diffusion = None
         self.unsampler_diffusion = None
-        self.base_model_path = 'base_model.pt'
-        self.unsample_model_path = 'upsample_model.pt'
+        self.base_model_path = 'D:\\RJdeck\\Metatopia\\meta3d\\base_model.pt'
+        self.unsample_model_path = 'D:\\RJdeck\\Metatopia\\meta3d\\upsample_model.pt'
         self.base_name = 'base40M-textvec'
         self.base_model_loaded = None
         self.unsampler_diffusion_loaded = None
@@ -38,8 +38,8 @@ class meta3d_model():
     
     # create a function to load the model
     def load_model(self):
-        self.base_model_loaded = torch.load(self.base_model_path)
-        self.unsampler_diffusion_loaded = torch.load(self.unsample_model_path)
+        self.base_model_loaded = torch.load(self.base_model_path, map_location=self.device)
+        self.unsampler_diffusion_loaded = torch.load(self.unsample_model_path, map_location=self.device)
     
     # create a function to get the difffusion
     def get_diffusion(self):
@@ -61,7 +61,7 @@ class meta3d_model():
         samples = None
         for x in tqdm(sampler.sample_batch_progressive(batch_size=1, model_kwargs=dict(texts=[prompt]))):
             samples = x
-        pc = self.create_point_cloud_sampler().output_to_point_clouds(samples)[0]
+        pc = sampler.output_to_point_clouds(samples)[0]
         return pc   
     
     def save_model2ply(self, filename: str):
@@ -74,7 +74,8 @@ class meta3d_model():
 if __name__ == '__main__':
     # create the model
     model = meta3d_model()
-    model.create_model()
+    # model.create_model()
+
     model.load_model()
     model.get_diffusion()
-    pc2 =  model.generate()
+    print(type(model.base_model_loaded))
