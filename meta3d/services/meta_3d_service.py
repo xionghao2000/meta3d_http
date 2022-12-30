@@ -5,7 +5,6 @@ from point_e.diffusion.configs import DIFFUSION_CONFIGS, diffusion_from_config
 from point_e.diffusion.sampler import PointCloudSampler
 from point_e.models.download import load_checkpoint
 from point_e.models.configs import MODEL_CONFIGS, model_from_config
-from point_e.util.plotting import plot_point_cloud
 
 def create_model(device, base_name: str = 'base40M-textvec'):
     """
@@ -72,13 +71,3 @@ def save_model2ply(model ,filename: str):
         '''
         with open(filename, 'wb') as f:
             model.write_ply(f)
-
-base_name = 'base40M-textvec'
-base_model_path = 'D:\\RJdeck\\Metatopia\\meta3d\\base_model.pt'
-unsample_model_path = 'D:\\RJdeck\\Metatopia\\meta3d\\upsample_model.pt'
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-base_model_load, upsampler_model_load = load_model(device,base_model_path ,unsample_model_path )
-base_diffusion, upsampler_diffusion = create_diffusion(base_name)
-pc = generate_3dmodel(device, base_model_load, upsampler_model_load, base_diffusion, upsampler_diffusion, prompt='a red flower')
-save_model2ply(pc, 'D:\\RJdeck\\Metatopia\\meta3d\\flower.ply')

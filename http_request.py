@@ -2,6 +2,7 @@ import flask
 import torch
 from services.meta_3d_service import \
     create_model, save_model, load_model, create_diffusion, generate_3dmodel, save_model2ply
+from services.s3_service import upload_file, get_url
 from http import HTTPStatus
 
 
@@ -40,6 +41,11 @@ def test():
     pc = generate_3dmodel(device, base_model_load, upsampler_model_load, base_diffusion, upsampler_diffusion, message)
     # save the model
     save_model2ply(pc, ply_filename)
+
+    # upload the file to s3
+    object_name = upload_file(ply_filename)
+    # get the url
+    url = get_url(object_name)
     
     return flask.jsonify({'url': url}), HTTPStatus.CREATED
 

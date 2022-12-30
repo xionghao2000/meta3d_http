@@ -1,0 +1,8 @@
+__pycache__
+*.pt
+*.ply
+*.ipynb
+*_cache
+.env
+3d_service_uc.py
+3d_service.py
