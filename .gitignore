@@ -6,3 +6,5 @@ __pycache__
 .env
 3d_service_uc.py
 3d_service.py
+.idea
+.coverage
