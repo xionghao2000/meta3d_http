@@ -1,3 +1,5 @@
-from meta3d.services.s3_service import upload_file
+from meta3d.services.s3_service import download_file
+from meta3d.common import config
 
-upload_file('D:\\RJdeck\\Metatopia\\meta3d\\apple.ply')
+
+download_file('D:\\RJdeck\\Metatopia\\meta3d\\cup_dd.ply', config.BUCKET_NAME,'text_to_3dmodel/cup.ply')
