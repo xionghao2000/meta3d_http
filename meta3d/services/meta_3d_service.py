@@ -1,4 +1,3 @@
-import imp
 from regex import D
 import torch
 from tqdm.auto import tqdm
@@ -12,6 +11,54 @@ from point_e.models.download import load_checkpoint
 from point_e.models.configs import MODEL_CONFIGS, model_from_config
 
 from meta3d.common import config
+from meta3d.services.s3_service import download_file
+
+class MachineLearningService:
+    def save(self, model, save_path):
+        torch.save(model, save_path)
+    def load(self, device, model_path):
+        return torch.load(model_path, map_location=device)
+
+class S3Service:
+    def download_file(self, file_path, bucket, object_name):
+        s3 = boto3.client('s3')
+        s3.download_file(bucket, object_name, file_path)
+    
+    def check_exists(self, file_name: str):
+        return os.path.exists(file_name)
+
+
+class Meta3dService:
+    def __init__(self, ml_service = MachineLearningService(), s3_service = S3Service()):
+        self.ml_service = ml_service
+        self.s3_service = s3_service
+    
+    def save_model(self, base_model, upsampler_model, model_path: str):
+        '''
+        save the model
+        '''
+        base_model_path = model_path + 'base_model.pt'
+        unsample_model_path = model_path + 'upsample_model.pt'
+
+        self.ml_service.save(base_model, base_model_path)
+        self.ml_service.save(upsampler_model, unsample_model_path)
+    
+    def check_model(self, model_path: str):
+        '''
+        check if the model exists in the path
+        '''
+        base_model_path = model_path + 'base_model.pt'
+        unsample_model_path = model_path + 'upsample_model.pt'
+
+        if not os.path.exists(base_model_path):
+            s3_b_model_path = config.BUCKET_model_folder + 'cup.ply'
+            download_file(base_model_path, config.BUCKET_NAME, s3_b_model_path)
+            
+        if not os.path.exists(unsample_model_path):
+            s3_un_model_path = config.BUCKET_model_folder + 'upsample_model.pt'
+            print('no such file: ' + unsample_model_path)
+            download_file(unsample_model_path, config.BUCKET_NAME, s3_un_model_path)
+
 
 def create_model(device, base_name: str = 'base40M-textvec'):
     """
@@ -29,39 +76,7 @@ def create_model(device, base_name: str = 'base40M-textvec'):
 
     return base_model, upsampler_model
 
-def save_model(base_model, upsampler_model, model_path: str):
-    '''
-    save the model
-    '''
-    base_model_path = model_path + 'base_model.pt'
-    unsample_model_path = model_path + 'upsample_model.pt'
 
-    torch.save(base_model, base_model_path)
-    torch.save(upsampler_model, unsample_model_path)
-
-def download_file(file_name, bucketname: str = config.BUCKET_NAME , object_name=None):
-    '''
-    download the file from s3
-    '''
-    s3 = boto3.client('s3')
-    with open(file_name, 'wb') as f:
-        s3.download_fileobj(bucketname, object_name, f)
-
-def check_model(model_path: str):
-    '''
-    check if the model exists in the path
-    '''
-    base_model_path = model_path + 'base_model.pt'
-    unsample_model_path = model_path + 'upsample_model.pt'
-
-    if not os.path.exists(base_model_path):
-        s3_b_model_path = config.BUCKET_model_folder + 'base_model.pt'
-        download_file(base_model_path, config.BUCKET_NAME,s3_b_model_path)
-        
-    if not os.path.exists(unsample_model_path):
-        s3_un_model_path = config.BUCKET_model_folder + 'upsample_model.pt'
-        print('no such file: ' + unsample_model_path)
-        download_file(unsample_model_path, config.BUCKET_NAME,s3_un_model_path)
 
 def load_model(device, model_path: str):
     '''
@@ -82,7 +97,7 @@ def create_diffusion(base_name: str):
     upsampler_diffusion = diffusion_from_config(DIFFUSION_CONFIGS['upsample'])
     return base_diffusion, upsampler_diffusion
 
-def generate_3dmodel(device, base_model, upsampler_model, base_diffusion, upsampler_diffusion, prompt: str):
+def generate_3d_result(device, base_model, upsampler_model, base_diffusion, upsampler_diffusion, prompt: str):
     """
     generate the 3d model
     """

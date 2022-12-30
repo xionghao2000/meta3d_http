@@ -34,3 +34,11 @@ def get_url(object_name: str, bucketname: str = config.BUCKET_NAME , region: str
     '''
     url = "https://s3."+region+".amazonaws.com/" + bucketname + "/" + object_name
     return url
+
+def download_file(file_name, bucketname: str = config.BUCKET_NAME , object_name=None):
+    '''
+    download the file from s3
+    '''
+    s3 = boto3.client('s3')
+    with open(file_name, 'wb') as f:
+        s3.download_fileobj(bucketname, object_name, f)
