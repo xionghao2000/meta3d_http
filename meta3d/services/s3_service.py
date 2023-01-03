@@ -3,10 +3,11 @@ import os
 
 import boto3
 from botocore.exceptions import ClientError
+
 from meta3d.common import config
 
 
-def upload_file(file_name, bucketname: str = config.BUCKET_NAME , object_name=None):
+def upload_file(file_name, bucketname: str = config.BUCKET_NAME, object_name=None):
     """Upload a file to an S3 bucket
 
     :param file_name: File to upload
@@ -28,14 +29,16 @@ def upload_file(file_name, bucketname: str = config.BUCKET_NAME , object_name=No
         return False
     return object_name
 
-def get_url(object_name: str, bucketname: str = config.BUCKET_NAME , region: str = config.REGION):
+
+def get_url(object_name: str, bucketname: str = config.BUCKET_NAME, region: str = config.REGION):
     '''
     get the url of the file
     '''
-    url = "https://s3."+region+".amazonaws.com/" + bucketname + "/" + object_name
+    url = "https://s3." + region + ".amazonaws.com/" + bucketname + "/" + object_name
     return url
 
-def download_file(file_name, bucketname: str = config.BUCKET_NAME , object_name=None):
+
+def download_file(file_name, bucketname: str = config.BUCKET_NAME, object_name=None):
     '''
     download the file from s3
     '''

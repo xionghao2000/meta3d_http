@@ -1,9 +1,10 @@
+from unittest import TestCase
+
 import torch
 from point_e.util.point_cloud import PointCloud
-from typing import Sequence, List, Tuple, Dict, Any, Iterator
+from typing import List, Dict, Any, Iterator, Optional
 
 from meta3d.services.meta_3d_service import Meta3dService, PointEService, MachineLearningService
-from unittest import TestCase
 
 
 class MockS3Service:
@@ -19,7 +20,7 @@ class MockS3Service:
 
 
 class MockMachineLearningService(MachineLearningService):
-    def load(self, base_model_path, map_location):
+    def load(self, model_path, map_location):
         return None
 
     def save(self, model, save_path):
@@ -46,6 +47,21 @@ class MockSampler:
     def output_to_point_clouds(self, output: torch.Tensor) -> List[PointCloud]:
         return [None]
 
+
+class MockModel(PointEService.Model):
+    def eval(self):
+        pass
+
+    def load_state_dict(self, val):
+        pass
+
+    def __init__(self, target_output_file_name: str):
+        self.target_output_file_name = target_output_file_name
+
+    def write_ply(self, val):
+        return self.target_output_file_name
+
+
 class TestMeta3dService(TestCase):
     def setUp(self):
         self.mock_s3_service_true = MockS3Service(True)
@@ -53,6 +69,12 @@ class TestMeta3dService(TestCase):
         self.mock_pointe_service = MockPointEService()
         self.mock_ml_service = MockMachineLearningService()
         self.mock_sampler = MockSampler()
+        self.file_name_to_be_deleted: Optional[str] = None
+
+    def tearDown(self):
+        if self.file_name_to_be_deleted is not None:
+            import os
+            os.remove(self.file_name_to_be_deleted)
 
     def test_check_model_ture(self):
         service = Meta3dService(s3_service=self.mock_s3_service_true, pointe_service=self.mock_pointe_service)
@@ -89,3 +111,8 @@ class TestMeta3dService(TestCase):
         service.generate_3d_result(sampler=self.mock_sampler, prompt=" ")
         self.assertEqual(1, 1)
 
+    def test_save_model2ply(self):
+        target_model = MockModel("test")
+        service = Meta3dService(pointe_service=self.mock_pointe_service)
+        self.file_name_to_be_deleted = service.save_model2ply(target_model, "test")
+        self.assertIn("test", self.file_name_to_be_deleted)

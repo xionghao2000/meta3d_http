@@ -1,32 +1,38 @@
-import point_e.models.configs
-from regex import D
-import torch
-from tqdm.auto import tqdm
-import uuid
 import os
-import boto3
+import uuid
 
-from point_e.diffusion.configs import DIFFUSION_CONFIGS, diffusion_from_config
+import boto3
+import point_e.models.configs
+import torch
+from point_e.diffusion.configs import DIFFUSION_CONFIGS
 from point_e.diffusion.sampler import PointCloudSampler as Sampler
+from point_e.models.configs import MODEL_CONFIGS
 from point_e.models.download import load_checkpoint
-from point_e.models.configs import MODEL_CONFIGS, model_from_config
+from tqdm.auto import tqdm
 
 from meta3d.common import config
-from meta3d.services.s3_service import download_file
 
 
 class PointCloudSampler(Sampler):
-    def __init__(self, device, models, diffusions, num_points, aux_channels, guidance_scale,
-                 model_kwargs_key_filter):
-        super().__init__(device, models, diffusions, num_points, aux_channels, guidance_scale,
-                         model_kwargs_key_filter)
+    def __init__(self, device, models: list, diffusions: list, num_points: list, aux_channels: list,
+                 guidance_scale: list,
+                 model_kwargs_key_filter: tuple):
+        super().__init__(
+            device=device,
+            models=models,
+            diffusions=diffusions,
+            num_points=num_points,
+            aux_channels=aux_channels,
+            guidance_scale=guidance_scale,
+            model_kwargs_key_filter=model_kwargs_key_filter,
+        )
 
 
 class MachineLearningService:
     def save(self, model, save_path):
         torch.save(model, save_path)
 
-    def load(self, device, model_path):
+    def load(self, model_path, map_location):
         return torch.load(model_path, map_location=device)
 
 
@@ -48,7 +54,7 @@ class PointEService:
             pass
 
         def write_ply(self, val):
-            pass
+            raise NotImplementedError
 
     def model_from_config(self, model_config, device) -> Model:
         return point_e.models.configs.model_from_config(model_config, device)
@@ -80,11 +86,11 @@ class Meta3dService:
         '''
         load the model
         '''
-        base_model_path = model_path + 'base_model.pt'
-        unsample_model_path = model_path + 'upsample_model.pt'
+        base_model_path = model_path + 'base_model_.pt'
+        unsample_model_path = model_path + 'upsample_model_.pt'
 
-        base_model_loaded = self.ml_service.load(base_model_path, map_location=device)
-        unsampler_model_loaded = self.ml_service.load(unsample_model_path, map_location=device)
+        base_model_loaded = self.ml_service.load(model_path=base_model_path, map_location=device)
+        unsampler_model_loaded = self.ml_service.load(model_path=unsample_model_path, map_location=device)
         return base_model_loaded, unsampler_model_loaded
 
     def check_model(self, model_path: str):
@@ -157,7 +163,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     service = Meta3dService()
 
-    base_model, upsampler_model = service.create_model(device=device)
+    base_model, upsampler_model = service.load_model(device=device,
+                                                     model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
     base_diffusion, upsampler_diffusion = service.create_diffusion()
 
     sampler = PointCloudSampler(
