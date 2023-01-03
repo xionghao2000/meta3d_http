@@ -101,7 +101,7 @@ class Meta3dService:
         unsample_model_path = model_path + 'upsample_model.pt'
 
         if not self.s3_service.check_exists(base_model_path):
-            s3_b_model_path = config.BUCKET_model_folder + 'cup.ply'
+            s3_b_model_path = config.BUCKET_model_folder + 'base_model.pt'
             self.s3_service.download_file(base_model_path, config.BUCKET_NAME, s3_b_model_path)
 
         if not self.s3_service.check_exists(unsample_model_path):
@@ -163,6 +163,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     service = Meta3dService()
 
+    check_model = service.check_model(model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
     base_model, upsampler_model = service.load_model(device=device,
                                                      model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
     base_diffusion, upsampler_diffusion = service.create_diffusion()
