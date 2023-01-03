@@ -86,8 +86,8 @@ class Meta3dService:
         '''
         load the model
         '''
-        base_model_path = model_path + 'base_model_.pt'
-        unsample_model_path = model_path + 'upsample_model_.pt'
+        base_model_path = model_path + 'base_model.pt'
+        unsample_model_path = model_path + 'upsample_model.pt'
 
         base_model_loaded = self.ml_service.load(model_path=base_model_path, map_location=device)
         unsampler_model_loaded = self.ml_service.load(model_path=unsample_model_path, map_location=device)

@@ -1,5 +1,7 @@
 import flask
 import torch
+from meta3d.services import Meta3dService
+from meta3d.services import PointCloudSampler
 from meta3d.services.s3_service import upload_file, get_url
 from http import HTTPStatus
 
@@ -22,24 +24,29 @@ def test():
     req = flask.request.get_json()
     # get the message
     message = req['message']
-    
-    # initialize the model
-    base_name = 'base40M-textvec'
-    # select the device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    # select the file path
+
+    prompt = message
     model_path = 'D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\'
-    ply_path = 'D:\\RJdeck\\Metatopia\\meta3d\\ply\\'
-    # check if the model exists
-    check_model(model_path)
-    # load the model
-    base_model_load, upsampler_model_load = load_model(device,model_path)
-    # create the diffusion
-    base_diffusion, upsampler_diffusion = create_diffusion(base_name)
-    # generate the 3d model
-    pc = generate_3d_result(device, base_model_load, upsampler_model_load, base_diffusion, upsampler_diffusion, message)
-    # save the model
-    file_name = save_model2ply(pc, ply_path)
+    ply_path = 'D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\ply\\'
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    service = Meta3dService()
+
+    check_model = service.check_model(model_path=model_path)
+    base_model, upsampler_model = service.load_model(device=device,model_path=model_path)
+    base_diffusion, upsampler_diffusion = service.create_diffusion()
+
+    sampler = PointCloudSampler(
+        device=device,
+        models=[base_model, upsampler_model],
+        diffusions=[base_diffusion, upsampler_diffusion],
+        num_points=[1024, 4096 - 1024],
+        aux_channels=['R', 'G', 'B'],
+        guidance_scale=[3.0, 0.0],
+        model_kwargs_key_filter=('texts', ''),
+    )
+    pc = service.generate_3d_result(sampler, prompt=prompt)
+
+    file_name = service.save_model2ply(pc, ply_path)
 
     # upload the file to s3
     object_name = upload_file(file_name)

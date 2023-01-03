@@ -9,6 +9,8 @@ setup(
     ],
     install_requires=[
         "torch"
+        "boto3"
+        "clip @ git + https://github.com/openai/point-e.git"
     ],
     author="meta3d_model",
     description="meta3d_model",
