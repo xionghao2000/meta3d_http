@@ -40,11 +40,24 @@ class PointEService:
         def load_state_dict(self, val):
             pass
 
+        def write_ply(self, val):
+            pass
+
+    class Sampler:
+        def sample_batch_progressive(self,batch_size: int, val):
+            pass
+        
+        def out_put_to_point_cloud(self, val):
+            pass
+
     def model_from_config(self, model_config, device) -> Model:
         return point_e.models.configs.model_from_config(model_config, device)
 
     def load_checkpoint(self, base_name, device):
         return load_checkpoint(base_name, device)
+    
+    def diffusion_from_config(self, diffusion_config, device):
+        return diffusion_from_config(diffusion_config, device)
 
 
 class Meta3dService:
@@ -107,42 +120,42 @@ class Meta3dService:
         return base_model, upsampler_model
 
 
-def create_diffusion(base_name: str):
-    """
-    create the diffusion
-    """
-    base_diffusion = diffusion_from_config(DIFFUSION_CONFIGS[base_name])
-    upsampler_diffusion = diffusion_from_config(DIFFUSION_CONFIGS['upsample'])
-    return base_diffusion, upsampler_diffusion
+    def create_diffusion(self, base_name: str):
+        """
+        create the diffusion
+        """
+        base_diffusion = self.pointe_service.diffusion_from_config(DIFFUSION_CONFIGS[base_name])
+        upsampler_diffusion = self.pointe_service.diffusion_from_config(DIFFUSION_CONFIGS['upsample'])
+        return base_diffusion, upsampler_diffusion
 
 
-def generate_3d_result(device, base_model, upsampler_model, base_diffusion, upsampler_diffusion, prompt: str):
-    """
-    generate the 3d model
-    """
-    sampler = PointCloudSampler(
-        device=device,
-        models=[base_model, upsampler_model],
-        diffusions=[base_diffusion, upsampler_diffusion],
-        num_points=[1024, 4096 - 1024],
-        aux_channels=['R', 'G', 'B'],
-        guidance_scale=[3.0, 0.0],
-        model_kwargs_key_filter=('texts', ''),  # Do not condition the upsampler at all
-    )
-    samples = None
-    for x in tqdm(sampler.sample_batch_progressive(batch_size=1, model_kwargs=dict(texts=[prompt]))):
-        samples = x
+    def generate_3d_result(self, device, base_model, upsampler_model, base_diffusion, upsampler_diffusion, prompt: str):
+        """
+        generate the 3d model
+        """
+        sampler = PointCloudSampler(
+            device=device,
+            models=[base_model, upsampler_model],
+            diffusions=[base_diffusion, upsampler_diffusion],
+            num_points=[1024, 4096 - 1024],
+            aux_channels=['R', 'G', 'B'],
+            guidance_scale=[3.0, 0.0],
+            model_kwargs_key_filter=('texts', ''),  # Do not condition the upsampler at all
+        )
+        samples = None
+        for x in tqdm(sampler.sample_batch_progressive(batch_size=1, model_kwargs=dict(texts=[prompt]))):
+            samples = x
 
-    pc = sampler.output_to_point_clouds(samples)[0]
-    return pc
+        pc = sampler.output_to_point_clouds(samples)[0]
+        return pc
 
 
-def save_model2ply(model, ply_path: str):
-    '''
-    save the model to ply file
-    '''
-    filename = ply_path + str(uuid.uuid4()) + '.ply'
+    def save_model2ply(self, model, ply_path: str):
+        '''
+        save the model to ply file
+        '''
+        filename = ply_path + str(uuid.uuid4()) + '.ply'
 
-    with open(filename, 'wb') as f:
-        model.write_ply(f)
-    return filename
+        with open(filename, 'wb') as f:
+            model.write_ply(f)
+        return filename
