@@ -1,5 +1,10 @@
-from meta3d.services.meta_3d_service import Meta3dService, PointEService
+import torch
+from point_e.util.point_cloud import PointCloud
+from typing import Sequence, List, Tuple, Dict, Any, Iterator
+
+from meta3d.services.meta_3d_service import Meta3dService, PointEService, MachineLearningService
 from unittest import TestCase
+
 
 class MockS3Service:
     def __init__(self, should_file_exist) -> None:
@@ -8,9 +13,17 @@ class MockS3Service:
 
     def download_file(self, file_path, bucket, object_name):
         self.counter += 1
-    
+
     def check_exists(self, file_name: str):
         return self.should_file_exist
+
+
+class MockMachineLearningService(MachineLearningService):
+    def load(self, base_model_path, map_location):
+        return None
+
+    def save(self, model, save_path):
+        return None
 
 
 class MockPointEService(PointEService):
@@ -20,21 +33,34 @@ class MockPointEService(PointEService):
     def model_from_config(self, model_config, device) -> PointEService.Model:
         model = PointEService.Model()
         return model
-        
+
+    def diffusion_from_config(self, diffusion_config):
+        return None, None
+
+
+class MockSampler:
+    def sample_batch_progressive(self, batch_size: int, model_kwargs: Dict[str, Any]) -> Iterator[torch.Tensor]:
+        for i in range(2):
+            yield torch.rand(1, 3)
+
+    def output_to_point_clouds(self, output: torch.Tensor) -> List[PointCloud]:
+        return [None]
 
 class TestMeta3dService(TestCase):
     def setUp(self):
         self.mock_s3_service_true = MockS3Service(True)
         self.mock_s3_service_false = MockS3Service(False)
         self.mock_pointe_service = MockPointEService()
+        self.mock_ml_service = MockMachineLearningService()
+        self.mock_sampler = MockSampler()
 
     def test_check_model_ture(self):
-        service = Meta3dService(s3_service=self.mock_s3_service_true)
+        service = Meta3dService(s3_service=self.mock_s3_service_true, pointe_service=self.mock_pointe_service)
         service.check_model('D:')
         self.assertEqual(self.mock_s3_service_true.counter, 0)
 
     def test_check_model_false(self):
-        service = Meta3dService(s3_service=self.mock_s3_service_false)
+        service = Meta3dService(s3_service=self.mock_s3_service_false, pointe_service=self.mock_pointe_service)
         service.check_model('D:')
         self.assertEqual(2, self.mock_s3_service_false.counter)
 
@@ -42,3 +68,24 @@ class TestMeta3dService(TestCase):
         service = Meta3dService(pointe_service=self.mock_pointe_service)
         service.create_model("")
         self.assertEqual(1, 1)
+
+    def test_load_model(self):
+        service = Meta3dService(ml_service=self.mock_ml_service, pointe_service=self.mock_pointe_service)
+        service.load_model(" ", " ")
+        self.assertEqual(1, 1)
+
+    def test_save_model(self):
+        service = Meta3dService(ml_service=self.mock_ml_service, pointe_service=self.mock_pointe_service)
+        service.save_model(" ", " ", " ")
+        self.assertEqual(1, 1)
+
+    def test_create_diffusion(self):
+        service = Meta3dService(pointe_service=self.mock_pointe_service)
+        service.create_diffusion("base_300m")
+        self.assertEqual(1, 1)
+
+    def test_generate_3d_result(self):
+        service = Meta3dService(pointe_service=self.mock_pointe_service)
+        service.generate_3d_result(sampler=self.mock_sampler, prompt=" ")
+        self.assertEqual(1, 1)
+

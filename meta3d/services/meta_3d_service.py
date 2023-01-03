@@ -7,12 +7,19 @@ import os
 import boto3
 
 from point_e.diffusion.configs import DIFFUSION_CONFIGS, diffusion_from_config
-from point_e.diffusion.sampler import PointCloudSampler
+from point_e.diffusion.sampler import PointCloudSampler as Sampler
 from point_e.models.download import load_checkpoint
 from point_e.models.configs import MODEL_CONFIGS, model_from_config
 
 from meta3d.common import config
 from meta3d.services.s3_service import download_file
+
+
+class PointCloudSampler(Sampler):
+    def __init__(self, device, models, diffusions, num_points, aux_channels, guidance_scale,
+                 model_kwargs_key_filter):
+        super().__init__(device, models, diffusions, num_points, aux_channels, guidance_scale,
+                         model_kwargs_key_filter)
 
 
 class MachineLearningService:
@@ -43,21 +50,14 @@ class PointEService:
         def write_ply(self, val):
             pass
 
-    class Sampler:
-        def sample_batch_progressive(self,batch_size: int, val):
-            pass
-        
-        def out_put_to_point_cloud(self, val):
-            pass
-
     def model_from_config(self, model_config, device) -> Model:
         return point_e.models.configs.model_from_config(model_config, device)
 
     def load_checkpoint(self, base_name, device):
-        return load_checkpoint(base_name, device)
-    
-    def diffusion_from_config(self, diffusion_config, device):
-        return diffusion_from_config(diffusion_config, device)
+        return point_e.models.download.load_checkpoint(base_name, device)
+
+    def diffusion_from_config(self, diffusion_config):
+        return point_e.diffusion.configs.diffusion_from_config(diffusion_config)
 
 
 class Meta3dService:
@@ -83,8 +83,8 @@ class Meta3dService:
         base_model_path = model_path + 'base_model.pt'
         unsample_model_path = model_path + 'upsample_model.pt'
 
-        base_model_loaded = torch.load(base_model_path, map_location=device)
-        unsampler_model_loaded = torch.load(unsample_model_path, map_location=device)
+        base_model_loaded = self.ml_service.load(base_model_path, map_location=device)
+        unsampler_model_loaded = self.ml_service.load(unsample_model_path, map_location=device)
         return base_model_loaded, unsampler_model_loaded
 
     def check_model(self, model_path: str):
@@ -110,7 +110,7 @@ class Meta3dService:
         base_model = self.pointe_service.model_from_config(model_config=MODEL_CONFIGS[base_name], device=device)
         base_model.eval()
 
-        upsampler_model = self.pointe_service.model_from_config(MODEL_CONFIGS['upsample'], device)
+        upsampler_model = self.pointe_service.model_from_config(model_config=MODEL_CONFIGS['upsample'], device=device)
         upsampler_model.eval()
 
         base_model.load_state_dict(self.pointe_service.load_checkpoint(base_name, device))
@@ -119,36 +119,26 @@ class Meta3dService:
 
         return base_model, upsampler_model
 
-
-    def create_diffusion(self, base_name: str):
+    def create_diffusion(self, base_name: str = 'base40M-textvec'):
         """
         create the diffusion
         """
-        base_diffusion = self.pointe_service.diffusion_from_config(DIFFUSION_CONFIGS[base_name])
-        upsampler_diffusion = self.pointe_service.diffusion_from_config(DIFFUSION_CONFIGS['upsample'])
+        base_diffusion = self.pointe_service.diffusion_from_config(
+            diffusion_config=DIFFUSION_CONFIGS.get(base_name, ""))
+        upsampler_diffusion = self.pointe_service.diffusion_from_config(
+            diffusion_config=DIFFUSION_CONFIGS.get('upsample', ""))
         return base_diffusion, upsampler_diffusion
 
-
-    def generate_3d_result(self, device, base_model, upsampler_model, base_diffusion, upsampler_diffusion, prompt: str):
+    def generate_3d_result(self, sampler: PointCloudSampler, prompt: str):
         """
         generate the 3d model
         """
-        sampler = PointCloudSampler(
-            device=device,
-            models=[base_model, upsampler_model],
-            diffusions=[base_diffusion, upsampler_diffusion],
-            num_points=[1024, 4096 - 1024],
-            aux_channels=['R', 'G', 'B'],
-            guidance_scale=[3.0, 0.0],
-            model_kwargs_key_filter=('texts', ''),  # Do not condition the upsampler at all
-        )
         samples = None
         for x in tqdm(sampler.sample_batch_progressive(batch_size=1, model_kwargs=dict(texts=[prompt]))):
             samples = x
 
         pc = sampler.output_to_point_clouds(samples)[0]
         return pc
-
 
     def save_model2ply(self, model, ply_path: str):
         '''
@@ -159,3 +149,24 @@ class Meta3dService:
         with open(filename, 'wb') as f:
             model.write_ply(f)
         return filename
+
+
+if __name__ == '__main__':
+    prompt = input("Please enter the prompt: ")
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    service = Meta3dService()
+
+    base_model, upsampler_model = service.create_model(device=device)
+    base_diffusion, upsampler_diffusion = service.create_diffusion()
+
+    sampler = PointCloudSampler(
+        device=device,
+        models=[base_model, upsampler_model],
+        diffusions=[base_diffusion, upsampler_diffusion],
+        num_points=[1024, 4096 - 1024],
+        aux_channels=['R', 'G', 'B'],
+        guidance_scale=[3.0, 0.0],
+        model_kwargs_key_filter=('texts', ''),
+    )
+    pc = service.generate_3d_result(sampler, prompt=prompt)
