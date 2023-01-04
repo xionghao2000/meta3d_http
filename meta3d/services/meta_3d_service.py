@@ -33,7 +33,7 @@ class MachineLearningService:
         torch.save(model, save_path)
 
     def load(self, model_path, map_location):
-        return torch.load(model_path, map_location=device)
+        return torch.load(model_path, map_location=map_location)
 
 
 class S3Service:
@@ -67,10 +67,11 @@ class PointEService:
 
 
 class Meta3dService:
-    def __init__(self, pointe_service=PointEService(), s3_service=S3Service(), ml_service=MachineLearningService()):
+    def __init__(self,pointe_service=PointEService(), s3_service=S3Service(), ml_service=MachineLearningService()):
         self.pointe_service = pointe_service
         self.s3_service = s3_service
         self.ml_service = ml_service
+
 
     def save_model(self, base_model, upsampler_model, model_path: str):
         '''
