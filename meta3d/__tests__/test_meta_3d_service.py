@@ -1,10 +1,9 @@
 from unittest import TestCase
 
 import torch
+from meta3d.services.meta_3d_service import Meta3dService, PointEService, MachineLearningService
 from point_e.util.point_cloud import PointCloud
 from typing import List, Dict, Any, Iterator, Optional
-
-from meta3d.services.meta_3d_service import Meta3dService, PointEService, MachineLearningService
 
 
 class MockS3Service:

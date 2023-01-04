@@ -4,14 +4,12 @@ import uuid
 import boto3
 import point_e.models.configs
 import torch
+from meta3d.common.config_3d import Config3D
 from point_e.diffusion.configs import DIFFUSION_CONFIGS
 from point_e.diffusion.sampler import PointCloudSampler as Sampler
 from point_e.models.configs import MODEL_CONFIGS
 from point_e.models.download import load_checkpoint
 from tqdm.auto import tqdm
-
-from meta3d.common.config_3d import Config3D
-
 
 
 class PointCloudSampler(Sampler):
@@ -68,10 +66,12 @@ class PointEService:
 
 
 class Meta3dService:
-    def __init__(self, pointe_service=PointEService(), s3_service=S3Service(), ml_service=MachineLearningService()):
+    def __init__(self, config: Config3D, pointe_service=PointEService(), s3_service=S3Service(),
+                 ml_service=MachineLearningService()):
         self.pointe_service = pointe_service
         self.s3_service = s3_service
         self.ml_service = ml_service
+        self.config = config
 
     def save_model(self, base_model, upsampler_model, model_path: str):
         '''
@@ -102,13 +102,15 @@ class Meta3dService:
         unsample_model_path = model_path + 'upsample_model.pt'
 
         if not self.s3_service.check_exists(base_model_path):
-            s3_b_model_path = Config3D.BUCKET_model_folder + 'base_model.pt'
-            self.s3_service.download_file(base_model_path, Config3D.BUCKET_NAME, s3_b_model_path)
+            s3_b_model_path = self.config.BUCKET_model_folder + 'base_model.pt'
+            self.s3_service.download_file(file_name=base_model_path, bucketname=self.config.BUCKET_NAME,
+                                          object_name=s3_b_model_path)
 
         if not self.s3_service.check_exists(unsample_model_path):
-            s3_un_model_path = Config3D.BUCKET_model_folder + 'upsample_model.pt'
+            s3_un_model_path = self.config.BUCKET_model_folder + 'upsample_model.pt'
             print('no such file: ' + unsample_model_path)
-            self.s3_service.download_file(unsample_model_path, Config3D.BUCKET_NAME, s3_un_model_path)
+            self.s3_service.download_file(file_name=unsample_model_path, bucketname=self.config.BUCKET_NAME,
+                                          object_name=s3_un_model_path)
 
     def create_model(self, device, base_name: str = 'base40M-textvec'):
         """

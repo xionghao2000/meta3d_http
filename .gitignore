@@ -12,3 +12,4 @@ meta3d.egg-info
 dist
 build
 common/config.py
+meta3d/common/config.py
