@@ -11,3 +11,4 @@ __pycache__
 meta3d.egg-info
 dist
 build
+common/config.py
