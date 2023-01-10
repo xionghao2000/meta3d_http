@@ -108,7 +108,6 @@ class Meta3dService:
 
         if not self.s3_service.check_exists(unsample_model_path):
             s3_un_model_path = self.config.BUCKET_model_folder + 'upsample_model.pt'
-            print('no such file: ' + unsample_model_path)
             self.s3_service.download_file(file_path=unsample_model_path, bucket=self.config.BUCKET_NAME,
                                           object_name=s3_un_model_path)
 
