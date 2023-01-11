@@ -5,7 +5,7 @@ import boto3
 from botocore.exceptions import ClientError
 
 
-def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id: str, aws_secret_access_key: str, object_name=None):
+def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id: str, aws_secret_access_key: str, object_name=None, endpoint_url=None):
     """Upload a file to an S3 bucket
 
     :param file_name: File to upload
@@ -20,7 +20,7 @@ def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id:
 
     # Upload the file
     s3_client = boto3.client('s3', region_name=region, aws_access_key_id=aws_access_key_id,
-                             aws_secret_access_key=aws_secret_access_key)
+                             aws_secret_access_key=aws_secret_access_key, endpoint_url=endpoint_url)
     try:
         response = s3_client.upload_file(file_name, bucketname, object_name)
     except ClientError as e:
@@ -29,19 +29,19 @@ def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id:
     return object_name
 
 
-def get_url(object_name: str, bucketname: str, region: str):
+def get_url(object_name: str, bucketname: str, download_endpoint: str):
     '''
     get the url of the file
     '''
-    url = "https://s3." + region + ".amazonaws.com/" + bucketname + "/" + object_name
+    url = download_endpoint + "/" + bucketname + "/" + object_name
     return url
 
 
-def download_file(file_name: str, bucketname: str, region: str, aws_access_key_id: str, aws_secret_access_key: str, object_name=None):
+def download_file(file_name: str, bucketname: str, region: str, aws_access_key_id: str, aws_secret_access_key: str, object_name=None, endpoint_url=None):
     '''
     download the file from s3
     '''
     s3 = boto3.client('s3', region_name=region, aws_access_key_id=aws_access_key_id,
-                      aws_secret_access_key=aws_secret_access_key)
+                      aws_secret_access_key=aws_secret_access_key, endpoint_url=endpoint_url)
     with open(file_name, 'wb') as f:
         s3.download_fileobj(bucketname, object_name, f)
