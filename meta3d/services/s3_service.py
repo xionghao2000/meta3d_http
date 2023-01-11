@@ -26,7 +26,6 @@ def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id:
     except ClientError as e:
         logging.error(e)
         return False
-    return object_name
 
 
 def get_url(object_name: str, bucketname: str, download_endpoint: str):

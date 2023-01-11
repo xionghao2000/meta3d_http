@@ -1,5 +1,4 @@
 import os
-import uuid
 
 import boto3
 import point_e.models.configs
@@ -159,7 +158,7 @@ class Meta3dService:
         '''
         save the model to ply file
         '''
-        filename = ply_path + str(uuid.uuid4()) + '.ply'
+        filename = ply_path + 'result' + '.ply'
 
         with open(filename, 'wb') as f:
             model.write_ply(f)
