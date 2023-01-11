@@ -36,8 +36,9 @@ class MachineLearningService:
 
 
 class S3Service:
-    def download_file(self, file_path, bucket, object_name):
-        s3 = boto3.client('s3')
+    def download_file(self, file_path, bucket, object_name, region, aws_access_key_id, aws_secret_access_key):
+        s3 = boto3.client('s3', region_name=region, aws_access_key_id=aws_access_key_id,
+                          aws_secret_access_key=aws_secret_access_key)
         s3.download_file(bucket, object_name, file_path)
 
     def check_exists(self, file_name: str):
@@ -90,8 +91,10 @@ class Meta3dService:
         base_model_path = model_path + 'base_model.pt'
         unsample_model_path = model_path + 'upsample_model.pt'
 
-        base_model_loaded = self.ml_service.load(model_path=base_model_path, map_location=device)
-        unsampler_model_loaded = self.ml_service.load(model_path=unsample_model_path, map_location=device)
+        base_model_loaded = self.ml_service.load(
+            model_path=base_model_path, map_location=device)
+        unsampler_model_loaded = self.ml_service.load(
+            model_path=unsample_model_path, map_location=device)
         return base_model_loaded, unsampler_model_loaded
 
     def check_model(self, model_path: str):
@@ -103,27 +106,31 @@ class Meta3dService:
 
         if not self.s3_service.check_exists(base_model_path):
             s3_b_model_path = self.config.BUCKET_model_folder + 'base_model.pt'
-            self.s3_service.download_file(file_path=base_model_path, bucket=self.config.BUCKET_NAME,
-                                          object_name=s3_b_model_path)
+            self.s3_service.download_file(file_path=base_model_path, bucket=self.config.BUCKET_NAME, region=self.config.REGION,
+                                          object_name=s3_b_model_path, aws_access_key_id=self.config.AWS_ACCESS_KEY_ID, aws_secret_access_key=self.config.AWS_SECRET_ACCESS_KEY)
 
         if not self.s3_service.check_exists(unsample_model_path):
             s3_un_model_path = self.config.BUCKET_model_folder + 'upsample_model.pt'
-            self.s3_service.download_file(file_path=unsample_model_path, bucket=self.config.BUCKET_NAME,
-                                          object_name=s3_un_model_path)
+            self.s3_service.download_file(file_path=unsample_model_path, bucket=self.config.BUCKET_NAME, region=self.config.REGION,
+                                          object_name=s3_un_model_path, aws_access_key_id=self.config.AWS_ACCESS_KEY_ID, aws_secret_access_key=self.config.AWS_SECRET_ACCESS_KEY)
 
     def create_model(self, device, base_name: str = 'base40M-textvec'):
         """
         create the model
         """
-        base_model = self.pointe_service.model_from_config(model_config=MODEL_CONFIGS[base_name], device=device)
+        base_model = self.pointe_service.model_from_config(
+            model_config=MODEL_CONFIGS[base_name], device=device)
         base_model.eval()
 
-        upsampler_model = self.pointe_service.model_from_config(model_config=MODEL_CONFIGS['upsample'], device=device)
+        upsampler_model = self.pointe_service.model_from_config(
+            model_config=MODEL_CONFIGS['upsample'], device=device)
         upsampler_model.eval()
 
-        base_model.load_state_dict(self.pointe_service.load_checkpoint(base_name, device))
+        base_model.load_state_dict(
+            self.pointe_service.load_checkpoint(base_name, device))
 
-        upsampler_model.load_state_dict(self.pointe_service.load_checkpoint('upsample', device))
+        upsampler_model.load_state_dict(
+            self.pointe_service.load_checkpoint('upsample', device))
 
         return base_model, upsampler_model
 
@@ -165,7 +172,8 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     service = Meta3dService()
 
-    check_model = service.check_model(model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
+    check_model = service.check_model(
+        model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
     base_model, upsampler_model = service.load_model(device=device,
                                                      model_path='D:\\RJdeck\\Metatopia\\meta3d\\meta3d\\models\\')
     base_diffusion, upsampler_diffusion = service.create_diffusion()
