@@ -44,3 +44,16 @@ def download_file(file_name: str, bucketname: str, region: str, aws_access_key_i
                       aws_secret_access_key=aws_secret_access_key, endpoint_url=endpoint_url)
     with open(file_name, 'wb') as f:
         s3.download_fileobj(bucketname, object_name, f)
+
+def get_model_image(imageContent: bytes, object_name: str, region: str, bucketname: str, aws_access_key_id: str,
+                     aws_secret_access_key: str, endpoint_url: str=None, download_endpoint: str=None):
+    s3 = boto3.resource('s3', region_name=region)
+    client = boto3.client('s3', region_name=region, aws_access_key_id=aws_access_key_id,
+                          aws_secret_access_key=aws_secret_access_key, endpoint_url=endpoint_url)
+
+    # change the last 3 word in image_object_name into jpg
+    key = object_name[:-4] + '.jpg' 
+    client.put_object(Body=imageContent, Bucket=bucketname,
+                      Key=key, ContentType='image/png')
+    url = download_endpoint + "/" + bucketname + "/" + key
+    return url

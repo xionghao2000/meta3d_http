@@ -8,6 +8,8 @@ from point_e.diffusion.configs import DIFFUSION_CONFIGS
 from point_e.diffusion.sampler import PointCloudSampler as Sampler
 from point_e.models.configs import MODEL_CONFIGS
 from point_e.models.download import load_checkpoint
+from point_e.util.plotting import plot_point_cloud
+
 from tqdm.auto import tqdm
 
 
@@ -63,6 +65,9 @@ class PointEService:
 
     def diffusion_from_config(self, diffusion_config):
         return point_e.diffusion.configs.diffusion_from_config(diffusion_config)
+    
+    def plot_point_cloud(self, model, color, grid_size, fixed_bounds):
+        return point_e.util.plotting.plot_point_cloud(model, color, grid_size, fixed_bounds)
 
 
 class Meta3dService:
@@ -163,6 +168,13 @@ class Meta3dService:
         with open(filename, 'wb') as f:
             model.write_ply(f)
         return filename
+
+    def generate_model_image(self, model, grid_size):
+        '''
+        save the model to image
+        '''
+        imageContent = self.pointe_service.plot_point_cloud(model, grid_size=3, fixed_bounds=((-0.75, -0.75, -0.75),(0.75, 0.75, 0.75)))
+        return imageContent
 
 
 if __name__ == '__main__':
