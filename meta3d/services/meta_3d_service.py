@@ -173,8 +173,16 @@ class Meta3dService:
         '''
         save the model to image
         '''
-        imageContent = self.pointe_service.plot_point_cloud(model, grid_size=3, fixed_bounds=((-0.75, -0.75, -0.75),(0.75, 0.75, 0.75)))
+        imageContent = self.pointe_service.plot_point_cloud(model,grid_size=3, color=True, fixed_bounds=((-0.75, -0.75, -0.75),(0.75, 0.75, 0.75)))
         return imageContent
+
+    def convert_image_to_bytes(self, imageContent):
+        import io
+        import matplotlib.pyplot as plt
+        buf = io.BytesIO()
+        imageContent.savefig(buf, format='png')
+        buf.seek(0)
+        return buf
 
 
 if __name__ == '__main__':
