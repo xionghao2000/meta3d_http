@@ -22,7 +22,7 @@ def upload_file(file_name: str, region: str, bucketname: str, aws_access_key_id:
     s3_client = boto3.client('s3', region_name=region, aws_access_key_id=aws_access_key_id,
                              aws_secret_access_key=aws_secret_access_key, endpoint_url=endpoint_url)
     try:
-        response = s3_client.upload_file(file_name, bucketname, object_name)
+        response = s3_client.upload_file(file_name, bucketname, object_name, ExtraArgs={'ACL':'public-read'})
     except ClientError as e:
         logging.error(e)
         return False
@@ -54,6 +54,6 @@ def get_model_image(imageContent: bytes, object_name: str, region: str, bucketna
     # change the last 3 word in image_object_name into jpg
     key = object_name[:-4] + '.jpg' 
     client.put_object(Body=imageContent, Bucket=bucketname,
-                      Key=key, ContentType='image/png')
+                      Key=key, ContentType='image/png', ACL='public-read')
     url = download_endpoint + "/" + bucketname + "/" + key
     return url
